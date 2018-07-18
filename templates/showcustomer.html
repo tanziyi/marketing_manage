@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="/static/plugins/bootstrap-3.3.7/css/bootstrap.css">
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <link rel="stylesheet" href="/static/plugins/sweetalert.css">
+    <script src="/static/plugins/jquery-3.3.1.min.js"></script>
+    <script src="/static/plugins/sweetalert-dev.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        td, th {
+            text-align: center
+        }
+    </style>
+
+</head>
+
+<body>
+{% csrf_token %}
+<nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                    aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="#">图书管理系统</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav navbar-right">
+                <li><a href="/logout/"> Hi，{{ request.session.name }}  注销</a></li>
+                <li><a href="#">上次登陆时间：{{ request.session.last_time }}</a></li>
+                <li><a href="#">帮助</a></li>
+            </ul>
+            <form class="navbar-form navbar-right">
+                <input type="text" class="form-control" placeholder="Search...">
+            </form>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-3 col-md-2 sidebar">
+            <ul class="nav nav-sidebar">
+                <li class="active"><a href="#">Overview <span class="sr-only">(current)</span></a></li>
+                <li><a href="#">Reports</a></li>
+                <li><a href="#">Analytics</a></li>
+                <li><a href="#">Export</a></li>
+            </ul>
+            <ul class="nav nav-sidebar">
+                <li><a href="">Nav item</a></li>
+                <li><a href="">Nav item again</a></li>
+                <li><a href="">One more nav</a></li>
+                <li><a href="">Another nav item</a></li>
+                <li><a href="">More navigation</a></li>
+            </ul>
+            <ul class="nav nav-sidebar">
+                <li><a href="">Nav item again</a></li>
+                <li><a href="">One more nav</a></li>
+                <li><a href="">Another nav item</a></li>
+            </ul>
+        </div>
+        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+            <div class="panel panel-default">
+                <div class="panel-heading">个人首页</div>
+                <table class="table">
+                    <thead>
+                    <th width="5">编号</th>
+                    <th width="15%">书籍名称</th>
+                    <th width="10%">价格</th>
+                    <th width="10%">出版时间</th>
+                    <th width="20%">出版社</th>
+                    <th width="20%">作者</th>
+                    <th width="10%">编辑操作</th>
+                    <th width="10%">删除操作</th>
+                    </thead>
+                    <tbody>
+                    {% for obj in book_list %}
+                        <tr>
+                            <td class="default">{{ forloop.counter }}</td>
+                            <td class="active">{{ obj.title }}</td>
+                            <td class="danger">{{ obj.price }}</td>
+                            <td class="success">{{ obj.pub_date|date:"Y-m-d" }}</td>
+                            <td class="warning">{{ obj.publish.name }}</td>
+                            <td class="primary">
+                                {% for author_obj in obj.authors.all %}
+                                    {% if forloop.last %}
+                                        <span>{{ author_obj.name }}</span>
+                                    {% else %}
+                                        <span>{{ author_obj.name }},</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td><a href="/books/update_books/{{ obj.id }}">
+                                <button type="button" class="btn btn-primary btn-sm">编辑</button>
+                            </a></td>
+                            <td><a href="javascript:void(0)" class="delete" name="{{ obj.id }}">
+                                <button type="button" class="btn btn-danger btn-sm">删除</button>
+                            </a></td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                <a href="/books/add_books/">
+                    <button type="button" class="btn btn-warning btn-sm btn-block">添加书籍</button>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+
+<script>
+    $('.delete').click(function () {
+        var pk = $(this).attr('name');
+        var _this = $(this);
+        swal({
+                title: "确定删除吗？",
+                text: "你将无法恢复该条记录！",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#DD6B55",
+                confirmButtonText: "确定删除！",
+                cancelButtonText: "取消删除！",
+                closeOnConfirm: false,
+                closeOnCancel: false
+            },
+            function (isConfirm) {
+                if (isConfirm) {
+                    swal("删除！", "书籍信息已经被删除。",
+                        "success");
+                    $.ajax({
+                        url: "/books/del_books/" + pk,
+                        type: 'post',
+                        data:{
+                            csrfmiddlewaretoken: $("[name='csrfmiddlewaretoken']").val(),
+                        },
+                        success: function (data) {
+                            var data = JSON.parse(data);
+                            if (data.state) {
+                                _this.parent().parent().after("<tr><td class='default' text-align='center' colspan='8'>删除成功</td></tr>")
+                                _this.parent().parent().remove();
+                                setTimeout(function () {
+                                    $("td[colspan='8'] ").remove()
+                                }, 3000)
+                            }else{
+                                    window.location.replace('http://127.0.0.1:8000/login/');
+                                }
+                        }
+                    })
+                } else {
+                    swal("取消！", "你的书籍信息是安全的:)",
+                        "error");
+                }
+            });
+    })
+
+</script>
+
+</body>
+</html>
